@@ -21,9 +21,10 @@ Requisitos de execução: Windows 10/11 x64 e
 O binário publicado importa MSVCP140 e VCRUNTIME140; instale o runtime se ele
 ainda não estiver disponível na máquina.
 
-Após compilar no Windows conforme as instruções abaixo:
+Baixe e extraia o ZIP da release no início desta página, ou compile o projeto
+conforme as instruções abaixo:
 
-1. Localize a pasta `VST3` dentro dos artefatos Release.
+1. Localize a pasta `VST3` no ZIP extraído ou dentro dos artefatos Release.
 2. Copie a **pasta inteira** `Unplugged Study.vst3` para
    `C:\Program Files\Common Files\VST3\`.
 3. Atualize a lista de plugins na DAW e insira **Unplugged Study** em uma
