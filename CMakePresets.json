@@ -1,0 +1,28 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "windows-x64",
+      "displayName": "Windows x64 / Visual Studio 2022",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/build/windows-x64",
+      "cacheVariables": {"BUILD_TESTING": "ON"}
+    },
+    {
+      "name": "dsp-tests",
+      "displayName": "Portable DSP tests",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/dsp-tests",
+      "cacheVariables": {"UNPLUGGED_BUILD_PLUGIN": "OFF", "CMAKE_BUILD_TYPE": "Debug"}
+    }
+  ],
+  "buildPresets": [
+    {"name": "windows-x64", "configurePreset": "windows-x64", "configuration": "Release"},
+    {"name": "dsp-tests", "configurePreset": "dsp-tests"}
+  ],
+  "testPresets": [
+    {"name": "windows-x64", "configurePreset": "windows-x64", "configuration": "Release", "output": {"outputOnFailure": true}},
+    {"name": "dsp-tests", "configurePreset": "dsp-tests", "output": {"outputOnFailure": true}}
+  ]
+}

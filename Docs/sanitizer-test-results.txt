@@ -1,0 +1,32 @@
+Start testing: Nov 15 20:26 UTC
+----------------------------------------------------------
+1/1 Testing: dsp_tests
+1/1 Test: dsp_tests
+Command: "/workspace/CLA-UMPLUGGED/build-dsp/dsp_tests"
+Directory: /workspace/CLA-UMPLUGGED/build-dsp
+"dsp_tests" start time: Nov 15 20:26 UTC
+Output:
+----------------------------------------------------------
+PASS dry unity and independent stereo
+PASS hard bypass ignores gain/effects
+PASS direct off removes dry signal
+PASS input/output calibrated dB gain
+PASS tempo delay quarter/eighth/slap timing
+PASS predelay shifts reverb onset
+PASS bass and treble change frequency response
+PASS Wall compressor reduces sustained loud input
+PASS full balance attenuates opposite channel
+  151 presets x 3 sample rates
+PASS all factory presets finite and valid at multiple sample rates
+PASS processing and automation allocate no heap memory
+PASS silence reset and nonfinite parameter sanitisation
+12 tests passed
+<end of output>
+Test time =   8.29 sec
+----------------------------------------------------------
+Test Passed.
+"dsp_tests" end time: Nov 15 20:26 UTC
+"dsp_tests" time elapsed: 00:00:08
+----------------------------------------------------------
+
+End testing: Nov 15 20:26 UTC
