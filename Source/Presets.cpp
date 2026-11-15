@@ -86,6 +86,9 @@ const std::vector<Preset>& factoryPresets()
             ambience.outputDb=std::max(-10.0f,s.outputDb-1);
             result.push_back({r.category,std::string(r.name)+" / Ambient",ambience});
         }
+        // Append only: existing DAW program indices remain compatible with v0.1.0.
+        Settings neutral;neutral.colour.fill(0);neutral.preDelayOn.fill(false);
+        result.push_back({"Default","Default / all modules bypassed",neutral});
         return result;
     }();
     return bank;

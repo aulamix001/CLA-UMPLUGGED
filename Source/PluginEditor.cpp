@@ -3,7 +3,7 @@
 #include <cmath>
 
 namespace {
-constexpr int artWidth=1604,artHeight=980,footerHeight=110;
+constexpr int artWidth=1604,artHeight=980,toolbarHeight=56;
 juce::Colour colourFor(int i) {
     const juce::Colour colours[] {juce::Colour(0xff55564a),juce::Colour(0xff9cdd42),
         juce::Colour(0xff43c7f3),juce::Colour(0xffee5145)};
@@ -33,20 +33,51 @@ void UnpluggedEditor::Skin::drawLinearSlider(juce::Graphics& g,int x,int y,int w
 void UnpluggedEditor::Skin::drawButtonBackground(juce::Graphics& g,juce::Button& b,
     const juce::Colour& background,bool over,bool down)
 {
+    if(static_cast<bool>(b.getProperties().getWithDefault("toolbarButton",false))) {
+        auto r=b.getLocalBounds().toFloat().reduced(.5f);
+        g.setGradientFill(juce::ColourGradient(juce::Colour(0xff434548),r.getTopLeft(),
+            juce::Colour(0xff090a0b),r.getBottomLeft(),false));
+        g.fillRect(r); g.setColour(juce::Colour(0xffb7b9b7)); g.drawRect(r,1);
+        g.setColour(b.getToggleState()?juce::Colour(0xff5b572c):(down?juce::Colour(0xff292c2e):juce::Colour(0xff060707))); g.fillRect(r.reduced(3));
+        if(over) {g.setColour(juce::Colours::white.withAlpha(.055f));g.fillRect(r.reduced(3));}
+        return;
+    }
     if(!static_cast<bool>(b.getProperties().getWithDefault("artworkButton",false))) {
         LookAndFeel_V4::drawButtonBackground(g,b,background,over,down); return;
     }
+    const bool lit=static_cast<bool>(b.getProperties().getWithDefault("colourSelector",false))
+        ? static_cast<bool>(b.getProperties().getWithDefault("lit",true)) : b.getToggleState();
     auto r=b.getLocalBounds().toFloat().reduced(1);
-    g.setColour(juce::Colours::black.withAlpha(.7f)); g.fillRoundedRectangle(r.translated(2,3),2);
-    g.setGradientFill(juce::ColourGradient(juce::Colour(0xffb7b9ac),r.getTopLeft(),
-        juce::Colour(0xff333632),r.getBottomRight(),false));
-    g.fillRect(r); r.reduce(5,5);
-    const auto c=background.brighter(over?.3f:0.0f).darker(down?.25f:0.0f);
-    g.setGradientFill(juce::ColourGradient(c.brighter(.5f),r.getTopLeft(),c.darker(.4f),r.getBottomRight(),false));
-    g.fillRect(r); g.setColour(c.brighter(.7f)); g.drawHorizontalLine(static_cast<int>(r.getY()),r.getX(),r.getRight());
+    const bool small=r.getWidth()<45;
+    g.setColour(juce::Colour(0xcc030403)); g.fillRect(r.translated(2,3));
+    g.setGradientFill(juce::ColourGradient(juce::Colour(0xff0a0c0d),r.getTopLeft(),
+        juce::Colour(0xff515350),r.getBottomRight(),false)); g.fillRect(r);
+    r.reduce(2,2);
+    g.setGradientFill(juce::ColourGradient(juce::Colour(0xffc1c0ac),r.getTopLeft(),
+        juce::Colour(0xff282a27),r.getBottomRight(),false)); g.fillRect(r);
+    r.reduce(small?2.0f:5.0f,small?2.0f:5.0f);
+    const auto top=lit?juce::Colour(0xffede99a):juce::Colour(0xffaaa99c);
+    const auto bottom=lit?juce::Colour(0xff85872b):juce::Colour(0xff53554c);
+    g.setGradientFill(juce::ColourGradient(top,r.getTopLeft(),bottom,r.getBottomRight(),false));g.fillRect(r);
+    if(lit) {
+        g.setGradientFill(juce::ColourGradient(juce::Colour(0xcce8ec70),r.getCentre(),
+            juce::Colour(0x005c6319),r.getTopLeft(),true));g.fillRect(r);
+    }
+    g.setColour(juce::Colours::black.withAlpha(down?.32f:.13f));g.drawRect(r,1);
+    g.setColour(juce::Colours::white.withAlpha(over?.6f:.4f));g.drawHorizontalLine(static_cast<int>(r.getY())+1,r.getX()+1,r.getRight()-1);
 }
 void UnpluggedEditor::Skin::drawButtonText(juce::Graphics& g,juce::TextButton& b,bool over,bool down)
 {
+    if(static_cast<bool>(b.getProperties().getWithDefault("toolbarButton",false))) {
+        g.setColour(juce::Colour(0xffe6e6e3));g.setFont(juce::Font(juce::FontOptions(23.0f)));
+        auto area=b.getLocalBounds().reduced(12,0);
+        g.drawText(b.getButtonText(),area,juce::Justification::centred);
+        if(b.getComponentID()=="presetMenu") {
+            juce::Path arrow;const float x=static_cast<float>(b.getWidth()-24),y=static_cast<float>(b.getHeight())*.5f;
+            arrow.addTriangle(x-5,y-3,x+5,y-3,x,y+3);g.fillPath(arrow);
+        }
+        return;
+    }
     if(!static_cast<bool>(b.getProperties().getWithDefault("artworkButton",false))) {
         LookAndFeel_V4::drawButtonText(g,b,over,down); return;
     }
@@ -54,18 +85,63 @@ void UnpluggedEditor::Skin::drawButtonText(juce::Graphics& g,juce::TextButton& b
     g.drawText(b.getButtonText(),b.getLocalBounds(),juce::Justification::centred);
 }
 void UnpluggedEditor::Skin::drawRotarySlider(juce::Graphics& g,int x,int y,int w,int h,
-    float pos,float start,float end,juce::Slider&)
+    float pos,float start,float end,juce::Slider& s)
 {
+    // Clear the static knob in the approved background without rewriting the PNG.
+    g.drawImage(art,0,0,s.getWidth(),s.getHeight(),215,
+        s.getComponentID()=="balance"?816:430,40,s.getComponentID()=="balance"?51:94);
     auto r=juce::Rectangle<float>(static_cast<float>(x),static_cast<float>(y),static_cast<float>(w),static_cast<float>(h)).reduced(5);
     const float cx=r.getCentreX(),cy=r.getCentreY(),radius=std::min(r.getWidth(),r.getHeight())*.5f;
-    g.setGradientFill(juce::ColourGradient(juce::Colour(0xffead57f),cx-radius,cy-radius,
-        juce::Colour(0xff79652a),cx+radius,cy+radius,false));
-    g.fillEllipse(cx-radius,cy-radius,2*radius,2*radius);
-    g.setColour(juce::Colour(0xff151719)); g.fillEllipse(cx-radius+6,cy-radius+6,2*radius-12,2*radius-12);
+    g.setColour(juce::Colour(0xd0000000));g.fillEllipse(cx-radius-1,cy-radius+2,2*radius+3,2*radius+3);
+    juce::Path ring;
+    constexpr int teeth=64;
+    for(int i=0;i<teeth*2;++i) {
+        const float a=juce::MathConstants<float>::twoPi*static_cast<float>(i)/static_cast<float>(teeth*2);
+        const float rad=radius-(i%2?1.2f:0.0f);
+        const float px=cx+std::sin(a)*rad,py=cy-std::cos(a)*rad;
+        if(i==0)ring.startNewSubPath(px,py);else ring.lineTo(px,py);
+    }
+    ring.closeSubPath();
+    g.setGradientFill(juce::ColourGradient(juce::Colour(0xffefe29b),cx-radius,cy-radius,
+        juce::Colour(0xff847334),cx+radius,cy+radius,false));g.fillPath(ring);
+    g.setColour(juce::Colour(0xffd8cd7c).withAlpha(.7f));g.strokePath(ring,juce::PathStrokeType(.6f));
+    const float face=radius-4.0f;
+    g.setGradientFill(juce::ColourGradient(juce::Colour(0xff454742),cx-face,cy-face,
+        juce::Colour(0xff161917),cx+face,cy+face,false));
+    g.fillEllipse(cx-face,cy-face,2*face,2*face);
+    g.setColour(juce::Colour(0xff070a09));g.drawEllipse(cx-face,cy-face,2*face,2*face,1.5f);
+    {
+        juce::Graphics::ScopedSaveState save(g);juce::Path circle;circle.addEllipse(cx-face+1,cy-face+1,2*face-2,2*face-2);
+        g.reduceClipRegion(circle);
+        juce::Random noise(0x7143);
+        for(int i=0;i<650;++i) {
+            const float px=cx-face+noise.nextFloat()*2*face,py=cy-face+noise.nextFloat()*2*face;
+            g.setColour((i%2?juce::Colours::white:juce::Colours::black).withAlpha(.06f));g.fillRect(px,py,.7f,.7f);
+        }
+    }
     const float angle=start+pos*(end-start);
-    g.setColour(juce::Colours::whitesmoke);
-    g.drawLine(cx+std::sin(angle)*radius*.42f,cy-std::cos(angle)*radius*.42f,
-        cx+std::sin(angle)*radius*.84f,cy-std::cos(angle)*radius*.84f,4);
+    g.setColour(juce::Colours::black.withAlpha(.5f));
+    g.drawLine(cx+std::sin(angle)*radius*.08f+1,cy-std::cos(angle)*radius*.08f+1,
+        cx+std::sin(angle)*radius*.88f+1,cy-std::cos(angle)*radius*.88f+1,3.5f);
+    g.setColour(juce::Colour(0xfff4f3de));
+    g.drawLine(cx+std::sin(angle)*radius*.08f,cy-std::cos(angle)*radius*.08f,
+        cx+std::sin(angle)*radius*.88f,cy-std::cos(angle)*radius*.88f,3.0f);
+}
+juce::Font UnpluggedEditor::Skin::getPopupMenuFont() {return juce::Font(juce::FontOptions(21.0f));}
+void UnpluggedEditor::Skin::drawPopupMenuBackground(juce::Graphics& g,int w,int h)
+{
+    g.setColour(juce::Colour(0xff303f45));g.fillRect(0,0,w,h);g.setColour(juce::Colour(0xff849499));g.drawRect(0,0,w,h,1);
+}
+void UnpluggedEditor::Skin::drawPopupMenuItem(juce::Graphics& g,const juce::Rectangle<int>& area,
+    bool separator,bool active,bool highlighted,bool ticked,bool submenu,const juce::String& text,
+    const juce::String&,const juce::Drawable*,const juce::Colour*)
+{
+    if(separator) {g.setColour(juce::Colour(0xff647278));g.fillRect(area.getX()+8,area.getCentreY(),area.getWidth()-16,1);return;}
+    if(highlighted&&active) {g.setColour(juce::Colour(0xff50636c));g.fillRect(area.reduced(1,0));}
+    g.setColour(juce::Colour(active?0xfff3f5f4:0xff8d989b));g.setFont(getPopupMenuFont());
+    auto line=area.reduced(24,0);g.drawText(text,line,juce::Justification::centredLeft);
+    if(ticked) {juce::Path mark;mark.startNewSubPath(static_cast<float>(area.getX()+7),static_cast<float>(area.getCentreY()));mark.lineTo(static_cast<float>(area.getX()+11),static_cast<float>(area.getCentreY()+4));mark.lineTo(static_cast<float>(area.getX()+18),static_cast<float>(area.getCentreY()-5));g.strokePath(mark,juce::PathStrokeType(1.5f));}
+    if(submenu) {const float ax=static_cast<float>(area.getRight()-15),ay=static_cast<float>(area.getCentreY());juce::Path arrow;arrow.startNewSubPath(ax-4,ay-5);arrow.lineTo(ax+1,ay);arrow.lineTo(ax-4,ay+5);g.strokePath(arrow,juce::PathStrokeType(2));}
 }
 UnpluggedEditor::UnpluggedEditor(UnpluggedProcessor& p)
     : AudioProcessorEditor(p),processor(p),
@@ -87,18 +163,20 @@ UnpluggedEditor::UnpluggedEditor(UnpluggedProcessor& p)
         auto& s=predelay[i]; controls.addAndMakeVisible(s);
         s.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
         s.setTextBoxStyle(juce::Slider::NoTextBox,false,0,0);
-        s.setBounds(120+i*140,207,104,94); s.setName("Reverb "+juce::String(i+1)+" predelay");
+        s.setBounds(118+i*140,202,94,94);s.setComponentID("predelay"+juce::String(i+1)); s.setName("Reverb "+juce::String(i+1)+" predelay");
         s.setDoubleClickReturnValue(true,16); s.setTextValueSuffix(" ms"); s.setPopupDisplayEnabled(true,true,this);
         s.setTooltip(s.getName()+" | 0-160 ms");
         attachments.push_back(std::make_unique<Attachment>(p.state,"predelay"+juce::String(i+1),s));
         auto& b=predelayButtons[i]; controls.addAndMakeVisible(b); b.setBounds(82+i*140,198,34,32);
         b.getProperties().set("artworkButton",true);
+        b.setComponentID("predelay"+juce::String(i+1)+"On");
         b.setClickingTogglesState(true); b.setTooltip("Reverb "+juce::String(i+1)+" predelay on/off");
         buttonAttachments.push_back(std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(p.state,"predelay"+juce::String(i+1)+"On",b));
     }
     for(int i=0;i<6;++i) {
         auto& b=colourButtons[i]; controls.addAndMakeVisible(b); b.setButtonText(juce::String::charToString(0x2191));
         b.getProperties().set("artworkButton",true);
+        b.getProperties().set("colourSelector",true);b.setComponentID(juce::String(UnpluggedProcessor::stages[i])+"Colour");
         b.setBounds(449+i*130,315,78,46); b.setTooltip(juce::String(UnpluggedProcessor::stages[i])+" colour: OFF / "+UnpluggedProcessor::colourNames[i].joinIntoString(" / "));
         b.onClick=[this,i] {
             auto* parameter=processor.state.getParameter(juce::String(UnpluggedProcessor::stages[i])+"Colour");
@@ -107,6 +185,7 @@ UnpluggedEditor::UnpluggedEditor(UnpluggedProcessor& p)
         };
     }
     controls.addAndMakeVisible(balance); balance.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+    balance.setComponentID("balance");
     balance.setTextBoxStyle(juce::Slider::NoTextBox,false,0,0); balance.setBounds(281,816,51,51);
     balance.setDoubleClickReturnValue(true,0); balance.setTooltip("Stereo balance | double-click: centre");
     attachments.push_back(std::make_unique<Attachment>(p.state,"balance",balance));
@@ -114,44 +193,74 @@ UnpluggedEditor::UnpluggedEditor(UnpluggedProcessor& p)
     direct.getProperties().set("artworkButton",true);
     direct.setTooltip("Direct signal on/off. Off = effects-only return.");
     buttonAttachments.push_back(std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(p.state,"direct",direct));
-    for(auto* c:std::array<juce::Component*,6>{&categories,&presets,&previous,&next,&bypass,&heading}) controls.addAndMakeVisible(c);
-    heading.setText("FACTORY PRESETS  |  Unplugged Study",juce::dontSendNotification);
-    heading.setBounds(44,988,1150,30); heading.setColour(juce::Label::textColourId,juce::Colour(0xffd8c080));
-    categories.setBounds(44,1028,320,40); presets.setBounds(380,1028,805,40);
-    previous.setBounds(1200,1028,60,40); previous.setButtonText("<");
-    next.setBounds(1270,1028,60,40); next.setButtonText(">");
-    bypass.setBounds(1360,1028,190,40); bypass.setButtonText("BYPASS"); bypass.setClickingTogglesState(true);
+    addAndMakeVisible(toolbar);toolbar.setComponentID("topToolbar");
+    for(auto* b:{&previous,&next,&presetMenuButton,&bypass}) {
+        toolbar.addAndMakeVisible(b);b->getProperties().set("toolbarButton",true);
+    }
+    previous.setBounds(12,8,58,40); previous.setButtonText("<");previous.setTooltip("Previous preset");previous.setComponentID("previousPreset");
+    next.setBounds(78,8,58,40); next.setButtonText(">");next.setTooltip("Next preset");next.setComponentID("nextPreset");
+    presetMenuButton.setBounds(150,8,1230,40);presetMenuButton.setComponentID("presetMenu");
+    presetMenuButton.setTooltip("Factory presets / categories");presetMenuButton.onClick=[this]{showPresetMenu();};
+    bypass.setBounds(1394,8,198,40); bypass.setButtonText("BYPASS"); bypass.setClickingTogglesState(true);
+    bypass.setComponentID("bypass");
     buttonAttachments.push_back(std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(p.state,"bypass",bypass));
-    juce::StringArray groups;
-    for(const auto& preset:unplugged::factoryPresets()) groups.addIfNotAlreadyThere(preset.category);
-    categories.addItemList(groups,1); categories.setSelectedId(1,juce::dontSendNotification);
-    categories.onChange=[this]{populatePresets();};
-    presets.onChange=[this]{if(presets.getSelectedId()>0) processor.loadPreset(presets.getSelectedId()-1);};
     previous.onClick=[this]{processor.loadPreset((processor.getCurrentProgram()+processor.getNumPrograms()-1)%processor.getNumPrograms()); syncPreset();};
     next.onClick=[this]{processor.loadPreset((processor.getCurrentProgram()+1)%processor.getNumPrograms()); syncPreset();};
-    setResizable(true,true); getConstrainer()->setFixedAspectRatio(static_cast<double>(artWidth)/(artHeight+footerHeight));
-    setResizeLimits(802,545,1604,1090); setSize(1100,748);
+    setResizable(true,true); getConstrainer()->setFixedAspectRatio(static_cast<double>(artWidth)/(artHeight+toolbarHeight));
+    setResizeLimits(802,518,1604,1036); setSize(1100,711);
     syncPreset(); timerCallback(); startTimerHz(30);
 }
 UnpluggedEditor::~UnpluggedEditor()
 {
-    stopTimer(); attachments.clear(); buttonAttachments.clear(); setLookAndFeel(nullptr);
+    stopTimer();if(presetMenuOpen)juce::PopupMenu::dismissAllActiveMenus();
+    attachments.clear(); buttonAttachments.clear(); setLookAndFeel(nullptr);
 }
-void UnpluggedEditor::populatePresets()
+juce::PopupMenu UnpluggedEditor::createPresetMenu() const
 {
-    presets.clear(juce::dontSendNotification);
-    const auto group=categories.getText(); const auto& bank=unplugged::factoryPresets();
-    for(std::size_t i=0;i<bank.size();++i) if(juce::String(bank[i].category)==group)
-        presets.addItem(bank[i].name,static_cast<int>(i)+1);
-    presets.setSelectedId(processor.getCurrentProgram()+1,juce::dontSendNotification);
+    juce::PopupMenu menu;menu.setLookAndFeel(&const_cast<Skin&>(skin));
+    const auto& bank=unplugged::factoryPresets();const int current=processor.getCurrentProgram();
+    const int neutral=static_cast<int>(bank.size())-1;
+    menu.addItem(neutral+1,"Default / all modules bypassed",true,current==neutral);
+    menu.addSeparator();
+    const juce::StringArray groups {"Female Vocals","Male Vocals","Lead Vocals","Backing & Choir","Speech",
+        "Drums","Percussion","Guitars & Bass","Strings","Keys & Synths","Brass & Winds"};
+    for(const auto& group:groups) {
+        juce::PopupMenu sub;
+        for(std::size_t i=1;i+1<bank.size();++i) {
+            const auto& p=bank[i];juce::String category=p.category;
+            if(category=="Backing & Choirs")category="Backing & Choir";
+            if(category=="Strings & Guitars") {
+                const juce::String name=p.name;
+                category=name.startsWith("Violin /")||name.startsWith("Cello /")||name.startsWith("String Section /")?"Strings":"Guitars & Bass";
+            }
+            if(category==group)sub.addItem(static_cast<int>(i)+1,p.name,true,current==static_cast<int>(i));
+        }
+        menu.addSubMenu(group,sub);
+    }
+    menu.addSeparator();menu.addItem(1,"Init / manual defaults",true,current==0);
+    return menu;
+}
+void UnpluggedEditor::showPresetMenu()
+{
+    if(presetMenuOpen)return;
+    presetMenuOpen=true;
+    auto menu=createPresetMenu();
+    auto options=juce::PopupMenu::Options().withTargetComponent(&presetMenuButton)
+        .withMinimumWidth(430).withStandardItemHeight(35).withMaximumNumColumns(1);
+    menu.showMenuAsync(options,[safe=juce::Component::SafePointer<UnpluggedEditor>(this)](int result) {
+        if(safe==nullptr)return;
+        safe->presetMenuOpen=false;
+        if(result>0)safe->processor.loadPreset(result-1);
+        safe->syncPreset();
+    });
 }
 void UnpluggedEditor::syncPreset()
 {
     const int index=processor.getCurrentProgram();
     if(index==shownPreset) return;
     shownPreset=index; const auto& entry=unplugged::factoryPresets()[static_cast<std::size_t>(index)];
-    categories.setText(entry.category,juce::dontSendNotification); populatePresets();
-    presets.setSelectedId(index+1,juce::dontSendNotification);
+    const juce::String name=entry.category=="Default"? (index==0?"Init":"Default"):juce::String(entry.name);
+    presetMenuButton.setButtonText("A: "+name);
 }
 void UnpluggedEditor::timerCallback()
 {
@@ -162,6 +271,7 @@ void UnpluggedEditor::timerCallback()
     for(int i=0;i<6;++i) {
         const int mode=static_cast<int>(processor.state.getRawParameterValue(juce::String(UnpluggedProcessor::stages[i])+"Colour")->load());
         colourButtons[i].setColour(juce::TextButton::buttonColourId,colourFor(mode).darker(.3f));
+        colourButtons[i].getProperties().set("lit",mode!=0);
     }
     for(auto* b:{&predelayButtons[0],&predelayButtons[1],&direct,&bypass}) {
         b->setColour(juce::TextButton::buttonOnColourId,juce::Colour(0xffbab444));
@@ -189,6 +299,9 @@ void UnpluggedEditor::paint(juce::Graphics& g)
 {
     g.fillAll(juce::Colour(0xff191b1d));
     g.addTransform(juce::AffineTransform::scale(static_cast<float>(getWidth())/artWidth));
+    g.setGradientFill(juce::ColourGradient(juce::Colour(0xff484a4b),0,0,juce::Colour(0xff151617),0,static_cast<float>(toolbarHeight),false));
+    g.fillRect(0,0,artWidth,toolbarHeight);g.setColour(juce::Colour(0xffa0a09b));g.drawHorizontalLine(toolbarHeight-2,0,static_cast<float>(artWidth));
+    g.setOrigin(0,toolbarHeight);
     g.drawImageAt(artwork,0,0);
     g.setColour(juce::Colour(0xff1b1d1e)); g.fillRect(429,201,768,87);
     g.setFont(juce::Font(juce::FontOptions(20.0f,juce::Font::bold|juce::Font::italic)));
@@ -211,11 +324,13 @@ void UnpluggedEditor::paint(juce::Graphics& g)
 }
 void UnpluggedEditor::resized()
 {
-    controls.setBounds(0,0,artWidth,artHeight+footerHeight);
+    controls.setBounds(0,toolbarHeight,artWidth,artHeight);
     controls.setTransform(juce::AffineTransform::scale(static_cast<float>(getWidth())/artWidth));
+    toolbar.setBounds(0,0,artWidth,toolbarHeight);
+    toolbar.setTransform(juce::AffineTransform::scale(static_cast<float>(getWidth())/artWidth));
 }
 void UnpluggedEditor::mouseDown(const juce::MouseEvent& event)
 {
-    const auto point=event.position*static_cast<float>(artWidth)/static_cast<float>(getWidth());
+    const auto point=event.position*static_cast<float>(artWidth)/static_cast<float>(getWidth())-juce::Point<float>(0,static_cast<float>(toolbarHeight));
     if(juce::Rectangle<float>(1270,430,100,390).contains(point)) processor.clipped.store(false);
 }

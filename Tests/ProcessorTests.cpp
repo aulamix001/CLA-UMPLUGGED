@@ -56,8 +56,49 @@ int main(int argc,char** argv)
         juce::PNGImageFormat png; check(png.writeImageToStream(screenshot,*stream),"write preview");
         stream.reset();
         std::cout<<"PASS editor construction and rendering\n";
+        auto* ui=dynamic_cast<UnpluggedEditor*>(editor.get());check(ui!=nullptr,"unexpected editor type");
+        auto* toolbar=editor->findChildWithID("topToolbar");check(toolbar!=nullptr,"top toolbar missing");
+        auto* menuButton=toolbar->findChildWithID("presetMenu");check(menuButton!=nullptr,"preset selector missing");
         auto* canvas=editor->getChildComponent(0);
         check(canvas!=nullptr,"editor control container missing");
+        const auto menuRect=editor->getLocalArea(menuButton,menuButton->getLocalBounds());
+        const auto panelRect=editor->getLocalArea(canvas,canvas->getLocalBounds());
+        check(menuRect.getBottom()<=panelRect.getY()+1,"presets are not above the artwork");
+        auto menu=ui->createPresetMenu();
+        std::vector<bool> seen(static_cast<std::size_t>(p.getNumPrograms()),false);
+        juce::PopupMenu::MenuItemIterator all(menu,true);
+        while(all.next()) {
+            const int id=all.getItem().itemID;
+            if(id>0) {check(id<=p.getNumPrograms(),"invalid preset menu ID");check(!seen[static_cast<std::size_t>(id-1)],"duplicate menu preset");seen[static_cast<std::size_t>(id-1)]=true;}
+        }
+        for(bool found:seen)check(found,"preset missing from category menu");
+        juce::StringArray categoryNames;
+        juce::PopupMenu::MenuItemIterator roots(menu);
+        while(roots.next())if(roots.getItem().subMenu)categoryNames.add(roots.getItem().text);
+        check(categoryNames==juce::StringArray{"Female Vocals","Male Vocals","Lead Vocals","Backing & Choir","Speech","Drums","Percussion","Guitars & Bass","Strings","Keys & Synths","Brass & Winds"},"menu category order differs from reference");
+        p.loadPreset(p.getNumPrograms()-1);
+        for(const auto* stage:UnpluggedProcessor::stages)check(p.state.getRawParameterValue(juce::String(stage)+"Colour")->load()==0,"default does not bypass every module");
+        p.loadPreset(0);
+        // Render the real menu item painter over the real editor for visual review.
+        auto menuPreview=screenshot.createCopy();
+        {
+        juce::Graphics mg(menuPreview);
+        mg.addTransform(juce::AffineTransform::scale(static_cast<float>(editor->getWidth())/1604.0f));mg.setOrigin(150,54);
+        auto& look=editor->getLookAndFeel();int menuHeight=4;
+        juce::PopupMenu::MenuItemIterator sizes(menu);while(sizes.next())menuHeight+=sizes.getItem().isSeparator?10:35;
+        look.drawPopupMenuBackground(mg,430,menuHeight);int itemY=2;
+        juce::PopupMenu::MenuItemIterator rows(menu);
+        while(rows.next()) {
+            const auto& item=rows.getItem();const int itemHeight=item.isSeparator?10:35;
+            look.drawPopupMenuItem(mg,{1,itemY,428,itemHeight},item.isSeparator,item.isEnabled,false,item.isTicked,item.subMenu!=nullptr,item.text,{},nullptr,nullptr);
+            itemY+=itemHeight;
+        }
+        }
+        check(menuPreview.getPixelAt(menuPreview.getWidth()-20,menuPreview.getHeight()-20)==screenshot.getPixelAt(screenshot.getWidth()-20,screenshot.getHeight()-20),"preset menu painted outside its bounds");
+        const auto menuFile=juce::File::getCurrentWorkingDirectory().getChildFile("editor-menu-preview.png");
+        auto menuStream=menuFile.createOutputStream();check(menuStream!=nullptr,"open menu preview");menuStream->setPosition(0);check(menuStream->truncate().wasOk(),"truncate menu preview");
+        check(png.writeImageToStream(menuPreview,*menuStream),"write menu preview");menuStream.reset();
+        std::cout<<"PASS top preset bar, complete category tree and all-modules bypass preset\n";
         auto* bass=dynamic_cast<juce::Slider*>(canvas->findChildWithID("bass"));
         check(bass!=nullptr,"bass control missing");
         bass->setValue(4.2,juce::sendNotificationSync);
@@ -67,6 +108,32 @@ int main(int argc,char** argv)
         check(std::abs(bass->getValue()+3.0)<.001,"automation-to-GUI mapping failed");
         p.loadPreset(0);
         std::cout<<"PASS bidirectional GUI and host parameter mapping\n";
+        auto* predelayKnob=dynamic_cast<juce::Slider*>(canvas->findChildWithID("predelay1"));
+        auto* predelaySwitch=dynamic_cast<juce::TextButton*>(canvas->findChildWithID("predelay1On"));
+        auto* colour=dynamic_cast<juce::TextButton*>(canvas->findChildWithID("bassColour"));
+        check(predelayKnob&&predelaySwitch&&colour,"realistic controls missing");
+        predelayKnob->setValue(84,juce::sendNotificationSync);check(p.state.getRawParameterValue("predelay1")->load()==84,"knob mapping failed");
+        const auto lightPoint=editor->getLocalPoint(predelaySwitch,predelaySwitch->getLocalBounds().getCentre());
+        predelaySwitch->setToggleState(false,juce::sendNotificationSync);check(p.state.getRawParameterValue("predelay1On")->load()==0,"off switch mapping failed");
+        const auto offPixel=editor->createComponentSnapshot(editor->getLocalBounds()).getPixelAt(lightPoint.x,lightPoint.y);
+        predelaySwitch->setToggleState(true,juce::sendNotificationSync);check(p.state.getRawParameterValue("predelay1On")->load()==1,"on switch mapping failed");
+        const auto onPixel=editor->createComponentSnapshot(editor->getLocalBounds()).getPixelAt(lightPoint.x,lightPoint.y);
+        check(onPixel.getBrightness()>offPixel.getBrightness() && static_cast<int>(onPixel.getGreen())-onPixel.getBlue()>25,"illuminated button does not reflect on/off state");
+        auto* secondKnob=dynamic_cast<juce::Slider*>(canvas->findChildWithID("predelay2"));
+        auto* secondSwitch=dynamic_cast<juce::TextButton*>(canvas->findChildWithID("predelay2On"));
+        check(secondKnob&&secondSwitch,"second predelay control missing");
+        predelayKnob->setValue(100,juce::sendNotificationSync);secondKnob->setValue(80,juce::sendNotificationSync);
+        secondSwitch->setToggleState(false,juce::sendNotificationSync);
+        auto controlsPreview=editor->createComponentSnapshot(editor->getLocalArea(canvas,juce::Rectangle<int>{72,190,295,150}),true,1.5f);
+        const auto controlsFile=juce::File::getCurrentWorkingDirectory().getChildFile("editor-predelays-preview.png");
+        auto controlsStream=controlsFile.createOutputStream();check(controlsStream!=nullptr,"open controls preview");controlsStream->setPosition(0);check(controlsStream->truncate().wasOk(),"truncate controls preview");
+        check(png.writeImageToStream(controlsPreview,*controlsStream),"write controls preview");controlsStream.reset();
+        for(int mode:{2,3,0,1}) {colour->onClick();check(static_cast<int>(p.state.getRawParameterValue("bassColour")->load())==mode,"colour button cycle failed");}
+        const auto* forward=dynamic_cast<juce::TextButton*>(toolbar->findChildWithID("nextPreset"));
+        check(forward!=nullptr,"next preset button missing");forward->onClick();check(p.getCurrentProgram()==1,"top bar navigation failed");
+        for(int width:{802,1100,1604}) {editor->setSize(width,static_cast<int>(std::lround(width*1036.0/1604.0)));check(editor->createComponentSnapshot(editor->getLocalBounds()).isValid(),"resize rendering failed");}
+        p.loadPreset(0);
+        std::cout<<"PASS knob, illuminated switches, colour cycling, preset navigation and resized rendering\n";
         if(argc>1) {
             juce::VST3PluginFormat format;
             juce::OwnedArray<juce::PluginDescription> descriptions;

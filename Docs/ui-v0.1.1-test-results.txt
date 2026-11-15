@@ -1,0 +1,56 @@
+Start testing: Nov 15 21:38 UTC
+----------------------------------------------------------
+1/2 Testing: dsp_tests
+1/2 Test: dsp_tests
+Command: "/workspace/CLA-UMPLUGGED/build-linux/dsp_tests"
+Directory: /workspace/CLA-UMPLUGGED/build-linux
+"dsp_tests" start time: Nov 15 21:38 UTC
+Output:
+----------------------------------------------------------
+PASS dry unity and independent stereo
+PASS hard bypass ignores gain/effects
+PASS direct off removes dry signal
+PASS input/output calibrated dB gain
+PASS tempo delay quarter/eighth/slap timing
+PASS predelay shifts reverb onset
+PASS bass and treble change frequency response
+PASS Wall compressor reduces sustained loud input
+PASS full balance attenuates opposite channel
+  152 presets x 3 sample rates
+PASS all factory presets finite and valid at multiple sample rates
+PASS processing and automation allocate no heap memory
+PASS silence reset and nonfinite parameter sanitisation
+12 tests passed
+<end of output>
+Test time =   0.80 sec
+----------------------------------------------------------
+Test Passed.
+"dsp_tests" end time: Nov 15 21:38 UTC
+"dsp_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/2 Testing: processor_tests
+2/2 Test: processor_tests
+Command: "/workspace/CLA-UMPLUGGED/build-linux/processor_tests_artefacts/Release/processor_tests" "/workspace/CLA-UMPLUGGED/build-linux/UnpluggedStudy_artefacts/Release/VST3/Unplugged Study.vst3/Contents/x86_64-linux/../.."
+Directory: /workspace/CLA-UMPLUGGED/build-linux
+"processor_tests" start time: Nov 15 21:38 UTC
+Output:
+----------------------------------------------------------
+Fontconfig error: No writable cache directories
+PASS state and factory program recall
+PASS automatic mapping of all factory presets
+PASS mono-to-stereo audio and bypass
+PASS editor construction and rendering
+PASS top preset bar, complete category tree and all-modules bypass preset
+PASS bidirectional GUI and host parameter mapping
+PASS knob, illuminated switches, colour cycling, preset navigation and resized rendering
+PASS compiled VST3 scan, instantiate, automation, programs, audio and state
+<end of output>
+Test time =   0.91 sec
+----------------------------------------------------------
+Test Passed.
+"processor_tests" end time: Nov 15 21:38 UTC
+"processor_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Nov 15 21:38 UTC

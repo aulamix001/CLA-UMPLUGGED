@@ -1,6 +1,10 @@
 Plugin VST3 e aplicativo standalone para **Windows x64**, em C++17/JUCE 8.0.12.
 
-- 151 presets para vozes, bateria, percussão, cordas, guitarras, teclados e sopros.
+- Seletor de presets na barra superior, com submenus por categoria como na referência.
+- Knobs com aro dourado serrilhado, face escura texturizada e indicador branco.
+- Botões com moldura metálica, relevo e estados amarelo aceso/cinza apagado.
+- 152 presets: preserva os 151 anteriores e acrescenta Default / all modules bypassed.
+- Menu com categorias separadas para Guitars & Bass e Strings.
 - Carregamento automático dos 21 parâmetros, automação e recuperação do estado na DAW.
 - Bass, Treble, Compress, dois reverbs com pré-delay, delay sincronizado e Direct.
 - Componentes estéreo e mono→estéreo. A imagem aprovada permanece intacta.

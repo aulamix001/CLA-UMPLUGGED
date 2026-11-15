@@ -1,8 +1,8 @@
 # Unplugged Study — C++ / JUCE / Windows x64
 
-**Download Windows x64:** [Unplugged Study v0.1.0 — VST3 + Standalone](https://github.com/aulamix001/CLA-UMPLUGGED/releases/download/v0.1.0/Unplugged-Study-Windows-x64.zip).
-[Release e checksum](https://github.com/aulamix001/CLA-UMPLUGGED/releases/tag/v0.1.0)
-· [Build e testes no Windows aprovados](https://github.com/aulamix001/CLA-UMPLUGGED/actions/runs/43760055832).
+**Download Windows x64:** [Unplugged Study — VST3 + Standalone, última versão](https://github.com/aulamix001/CLA-UMPLUGGED/releases/latest/download/Unplugged-Study-Windows-x64.zip).
+[Release e checksum](https://github.com/aulamix001/CLA-UMPLUGGED/releases/latest)
+· [Build e testes no Windows](https://github.com/aulamix001/CLA-UMPLUGGED/actions/workflows/windows.yml).
 
 Implementação independente de um processador no fluxo do **CLA Unplugged**,
 com interface baseada na imagem aprovada, VST3 e aplicativo standalone.
@@ -29,7 +29,8 @@ conforme as instruções abaixo:
    `C:\Program Files\Common Files\VST3\`.
 3. Atualize a lista de plugins na DAW e insira **Unplugged Study** em uma
    pista mono ou estéreo. A saída é estéreo nos dois casos.
-4. Escolha uma categoria e um preset no rodapé. Todos os controles são
+4. Abra o seletor **A:** na barra superior e escolha uma categoria e um preset.
+   Todos os controles são
    mapeados e carregados automaticamente. O tempo do delay vem da DAW;
    sem andamento disponível, o fallback é 120 BPM.
 
@@ -65,8 +66,10 @@ para esta implementação e não extraídos do produto original.
 
 ## Presets e mapeamento automático
 
-O banco possui **151 programas**: Init e 50 perfis com versões principal,
-Dry e Ambient. Inclui vozes femininas, masculinas, lead, backing e coros,
+O banco possui **152 programas**: Init, 50 perfis com versões principal,
+Dry e Ambient e **Default / all modules bypassed**. Os 151 índices originais
+foram preservados para compatibilidade com sessões existentes.
+Inclui vozes femininas, masculinas, lead, backing e coros,
 podcast, narração, locução, caixa, bumbo, toms, overheads, sala, bus paralelo,
 pandeiro, shaker, congas, cajón, violão aço/nylon, guitarra base/solo, baixo,
 violino, cello, cordas, piano, Rhodes, Wurlitzer, synth lead, arpejos, pads,
@@ -103,7 +106,12 @@ SHA-256 1179a8a2e3db3da08a19e2cb31396130cd84ed0928a6b606129ef62ab0a75ba3
 
 O PNG não é editado. Faders, LEDs, rótulos de modos e medidores são desenhados
 em camadas durante a execução para responder ao áudio e à automação. O
-seletor de presets e o bypass ficam em um rodapé separado da arte principal.
+seletor de presets e o bypass ficam em uma barra fina acima da arte principal.
+O menu segue a referência: Female Vocals, Male Vocals, Lead Vocals,
+Backing & Choir, Speech, Drums, Percussion, Guitars & Bass, Strings,
+Keys & Synths e Brass & Winds. Os knobs têm aro dourado serrilhado, face
+escura texturizada e indicador branco; os botões possuem relevo e estados
+aceso/apagado ligados aos parâmetros da DAW.
 
 ## Compilar no Windows
 

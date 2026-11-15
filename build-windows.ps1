@@ -44,4 +44,7 @@ $zip = Join-Path $dist 'Unplugged-Study-Windows-x64.zip'
 Compress-Archive -Path (Join-Path $artifacts 'VST3'), (Join-Path $artifacts 'Standalone') -DestinationPath $zip -Force
 $digest = (Get-FileHash -Path $zip -Algorithm SHA256).Hash.ToLowerInvariant()
 [System.IO.File]::WriteAllText("$zip.sha256", "$digest  Unplugged-Study-Windows-x64.zip`n", [System.Text.UTF8Encoding]::new($false))
+Copy-Item (Join-Path $PSScriptRoot 'build/windows-x64/editor-preview.png') (Join-Path $dist 'Unplugged-Study-interface.png') -Force
+Copy-Item (Join-Path $PSScriptRoot 'build/windows-x64/editor-menu-preview.png') (Join-Path $dist 'Unplugged-Study-presets-menu.png') -Force
+Copy-Item (Join-Path $PSScriptRoot 'build/windows-x64/editor-predelays-preview.png') (Join-Path $dist 'Unplugged-Study-predelays.png') -Force
 Write-Host "Build and tests completed. Package: $zip"
