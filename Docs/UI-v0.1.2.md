@@ -19,3 +19,11 @@ As alterações funcionais passaram pelas duas suítes locais: DSP/presets e
 processador/interface, incluindo carga do VST3, menu completo, modos, estados
 luminosos, automação dos knobs e redimensionamento. A publicação Windows
 também exige todos os testes e a inspeção PE AMD64.
+
+## Windows aprovado e download conferido
+
+- [Build Windows v0.1.2](https://github.com/aulamix001/CLA-UMPLUGGED/actions/runs/43766092053): concluído com sucesso.
+- [Release v0.1.2](https://github.com/aulamix001/CLA-UMPLUGGED/releases/tag/v0.1.2): ZIP, checksum e três capturas de interface publicados.
+- O pacote publicado foi baixado e conferido: VST3 DLL e standalone são PE AMD64.
+- As capturas Windows do menu e dos pré-delays foram inspecionadas após o download.
+- SHA-256 do ZIP: `b6702d96b44032f0aa23be186bd333144a78b82ce8fdf36bfd9a67026ed0b8b0`.
