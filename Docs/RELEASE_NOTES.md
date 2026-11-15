@@ -1,7 +1,7 @@
 Plugin VST3 e aplicativo standalone para **Windows x64**, em C++17/JUCE 8.0.12.
 
 - Seletor de presets na barra superior, com submenus por categoria como na referência.
-- Knobs com aro dourado serrilhado, face escura texturizada e indicador branco.
+- Knobs com aro de latão escovado em relevo, textura em alta resolução e indicador branco vetorial.
 - Botões com moldura metálica, relevo e estados amarelo aceso/cinza apagado.
 - 152 presets: preserva os 151 anteriores e acrescenta Default / all modules bypassed.
 - Menu com categorias separadas para Guitars & Bass e Strings.

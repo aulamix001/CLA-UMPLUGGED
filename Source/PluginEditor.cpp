@@ -48,6 +48,7 @@ void UnpluggedEditor::Skin::drawButtonBackground(juce::Graphics& g,juce::Button&
     const bool lit=static_cast<bool>(b.getProperties().getWithDefault("colourSelector",false))
         ? static_cast<bool>(b.getProperties().getWithDefault("lit",true)) : b.getToggleState();
     auto r=b.getLocalBounds().toFloat().reduced(1);
+    if(down)r.translate(1,1);
     const bool small=r.getWidth()<45;
     g.setColour(juce::Colour(0xcc030403)); g.fillRect(r.translated(2,3));
     g.setGradientFill(juce::ColourGradient(juce::Colour(0xff0a0c0d),r.getTopLeft(),
@@ -82,7 +83,7 @@ void UnpluggedEditor::Skin::drawButtonText(juce::Graphics& g,juce::TextButton& b
         LookAndFeel_V4::drawButtonText(g,b,over,down); return;
     }
     g.setColour(juce::Colour(0xff25271a)); g.setFont(juce::Font(juce::FontOptions(21.0f,juce::Font::bold)));
-    g.drawText(b.getButtonText(),b.getLocalBounds(),juce::Justification::centred);
+    g.drawText(b.getButtonText(),b.getLocalBounds().translated(down?1:0,down?1:0),juce::Justification::centred);
 }
 void UnpluggedEditor::Skin::drawRotarySlider(juce::Graphics& g,int x,int y,int w,int h,
     float pos,float start,float end,juce::Slider& s)
@@ -92,40 +93,21 @@ void UnpluggedEditor::Skin::drawRotarySlider(juce::Graphics& g,int x,int y,int w
         s.getComponentID()=="balance"?816:430,40,s.getComponentID()=="balance"?51:94);
     auto r=juce::Rectangle<float>(static_cast<float>(x),static_cast<float>(y),static_cast<float>(w),static_cast<float>(h)).reduced(5);
     const float cx=r.getCentreX(),cy=r.getCentreY(),radius=std::min(r.getWidth(),r.getHeight())*.5f;
-    g.setColour(juce::Colour(0xd0000000));g.fillEllipse(cx-radius-1,cy-radius+2,2*radius+3,2*radius+3);
-    juce::Path ring;
-    constexpr int teeth=64;
-    for(int i=0;i<teeth*2;++i) {
-        const float a=juce::MathConstants<float>::twoPi*static_cast<float>(i)/static_cast<float>(teeth*2);
-        const float rad=radius-(i%2?1.2f:0.0f);
-        const float px=cx+std::sin(a)*rad,py=cy-std::cos(a)*rad;
-        if(i==0)ring.startNewSubPath(px,py);else ring.lineTo(px,py);
-    }
-    ring.closeSubPath();
-    g.setGradientFill(juce::ColourGradient(juce::Colour(0xffefe29b),cx-radius,cy-radius,
-        juce::Colour(0xff847334),cx+radius,cy+radius,false));g.fillPath(ring);
-    g.setColour(juce::Colour(0xffd8cd7c).withAlpha(.7f));g.strokePath(ring,juce::PathStrokeType(.6f));
-    const float face=radius-4.0f;
-    g.setGradientFill(juce::ColourGradient(juce::Colour(0xff454742),cx-face,cy-face,
-        juce::Colour(0xff161917),cx+face,cy+face,false));
-    g.fillEllipse(cx-face,cy-face,2*face,2*face);
-    g.setColour(juce::Colour(0xff070a09));g.drawEllipse(cx-face,cy-face,2*face,2*face,1.5f);
-    {
-        juce::Graphics::ScopedSaveState save(g);juce::Path circle;circle.addEllipse(cx-face+1,cy-face+1,2*face-2,2*face-2);
-        g.reduceClipRegion(circle);
-        juce::Random noise(0x7143);
-        for(int i=0;i<650;++i) {
-            const float px=cx-face+noise.nextFloat()*2*face,py=cy-face+noise.nextFloat()*2*face;
-            g.setColour((i%2?juce::Colours::white:juce::Colours::black).withAlpha(.06f));g.fillRect(px,py,.7f,.7f);
-        }
-    }
+    // High-resolution, alpha-cut brass body keeps its lighting fixed while the
+    // crisp vector indicator follows the parameter. The approved panel is intact.
+    jassert(knobBody.isValid());
+    const float margin=s.getComponentID()=="balance"?0.0f:5.0f;
+    const auto body=juce::Rectangle<float>(static_cast<float>(x),static_cast<float>(y),static_cast<float>(w),static_cast<float>(h)).expanded(margin);
+    g.setImageResamplingQuality(juce::Graphics::highResamplingQuality);
+    g.drawImage(knobBody,body);
     const float angle=start+pos*(end-start);
+    const float thickness=juce::jmax(1.8f,static_cast<float>(w)*.03f);
     g.setColour(juce::Colours::black.withAlpha(.5f));
     g.drawLine(cx+std::sin(angle)*radius*.08f+1,cy-std::cos(angle)*radius*.08f+1,
-        cx+std::sin(angle)*radius*.88f+1,cy-std::cos(angle)*radius*.88f+1,3.5f);
-    g.setColour(juce::Colour(0xfff4f3de));
+        cx+std::sin(angle)*radius*.67f+1,cy-std::cos(angle)*radius*.67f+1,thickness+.5f);
+    g.setColour(juce::Colour(0xfffafaf7));
     g.drawLine(cx+std::sin(angle)*radius*.08f,cy-std::cos(angle)*radius*.08f,
-        cx+std::sin(angle)*radius*.88f,cy-std::cos(angle)*radius*.88f,3.0f);
+        cx+std::sin(angle)*radius*.67f,cy-std::cos(angle)*radius*.67f,thickness);
 }
 juce::Font UnpluggedEditor::Skin::getPopupMenuFont() {return juce::Font(juce::FontOptions(21.0f));}
 void UnpluggedEditor::Skin::drawPopupMenuBackground(juce::Graphics& g,int w,int h)
@@ -146,7 +128,7 @@ void UnpluggedEditor::Skin::drawPopupMenuItem(juce::Graphics& g,const juce::Rect
 UnpluggedEditor::UnpluggedEditor(UnpluggedProcessor& p)
     : AudioProcessorEditor(p),processor(p),
       artwork(juce::ImageFileFormat::loadFrom(BinaryData::claunpluggedoriginal_png,BinaryData::claunpluggedoriginal_pngSize)),
-      skin(artwork)
+      skin(artwork,juce::ImageFileFormat::loadFrom(BinaryData::knobbody_png,BinaryData::knobbody_pngSize))
 {
     setLookAndFeel(&skin); addAndMakeVisible(controls); controls.setInterceptsMouseClicks(false,true);
     const std::array<juce::String,8> ids {"input","bass","treble","compress","reverb1","reverb2","delay","output"};

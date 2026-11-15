@@ -109,8 +109,8 @@ em camadas durante a execução para responder ao áudio e à automação. O
 seletor de presets e o bypass ficam em uma barra fina acima da arte principal.
 O menu segue a referência: Female Vocals, Male Vocals, Lead Vocals,
 Backing & Choir, Speech, Drums, Percussion, Guitars & Bass, Strings,
-Keys & Synths e Brass & Winds. Os knobs têm aro dourado serrilhado, face
-escura texturizada e indicador branco; os botões possuem relevo e estados
+Keys & Synths e Brass & Winds. Os knobs têm aro de latão escovado em relevo,
+textura de alta resolução e indicador branco vetorial; os botões possuem relevo e estados
 aceso/apagado ligados aos parâmetros da DAW.
 
 ## Compilar no Windows

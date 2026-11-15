@@ -15,7 +15,7 @@ private:
     class Skin final : public juce::LookAndFeel_V4
     {
     public:
-        explicit Skin(juce::Image image):art(std::move(image)) {}
+        Skin(juce::Image image,juce::Image bodyImage):art(std::move(image)),knobBody(std::move(bodyImage)) {}
         int getSliderThumbRadius(juce::Slider& s) override { return s.isVertical()?55:10; }
         void drawLinearSlider(juce::Graphics&,int,int,int,int,float,float,float,
             juce::Slider::SliderStyle,juce::Slider&) override;
@@ -27,7 +27,7 @@ private:
         void drawPopupMenuItem(juce::Graphics&,const juce::Rectangle<int>&,bool,bool,bool,bool,bool,
             const juce::String&,const juce::String&,const juce::Drawable*,const juce::Colour*) override;
     private:
-        juce::Image art;
+        juce::Image art,knobBody;
     };
     UnpluggedProcessor& processor;
     juce::Image artwork;

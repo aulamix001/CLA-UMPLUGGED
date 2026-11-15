@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(UnpluggedStudy VERSION 0.1.1 LANGUAGES C CXX)
+project(UnpluggedStudy VERSION 0.1.2 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 option(UNPLUGGED_BUILD_PLUGIN "Build JUCE VST3 and standalone" ON)
@@ -43,7 +43,7 @@ if(UNPLUGGED_BUILD_PLUGIN)
             GIT_TAG 29396c22c93392d6738e021b83196283d6e4d850)
         FetchContent_MakeAvailable(JUCE)
     endif()
-    juce_add_binary_data(UnpluggedArtwork SOURCES Assets/cla-unplugged-original.png)
+    juce_add_binary_data(UnpluggedArtwork SOURCES Assets/cla-unplugged-original.png Assets/knob-body.png)
     juce_add_plugin(UnpluggedStudy
         COMPANY_NAME "Aulamix"
         BUNDLE_ID "com.aulamix.unpluggedstudy"
