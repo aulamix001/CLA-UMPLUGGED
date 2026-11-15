@@ -1,5 +1,9 @@
 # Unplugged Study — C++ / JUCE / Windows x64
 
+**Download Windows x64:** [Unplugged Study v0.1.0 — VST3 + Standalone](https://github.com/aulamix001/CLA-UMPLUGGED/releases/download/v0.1.0/Unplugged-Study-Windows-x64.zip).
+[Release e checksum](https://github.com/aulamix001/CLA-UMPLUGGED/releases/tag/v0.1.0)
+· [Build e testes no Windows aprovados](https://github.com/aulamix001/CLA-UMPLUGGED/actions/runs/43760055832).
+
 Implementação independente de um processador no fluxo do **CLA Unplugged**,
 com interface baseada na imagem aprovada, VST3 e aplicativo standalone.
 O modelo foi confirmado pelo usuário como Unplugged, substituindo o pedido
@@ -11,6 +15,11 @@ produto comercial. Os presets são pontos de partida, não correção automátic
 ou classificação do áudio recebido.
 
 ## Usar no Windows 64 bits
+
+Requisitos de execução: Windows 10/11 x64 e
+[Microsoft Visual C++ Runtime x64](https://aka.ms/vs/17/release/vc_redist.x64.exe).
+O binário publicado importa MSVCP140 e VCRUNTIME140; instale o runtime se ele
+ainda não estiver disponível na máquina.
 
 Após compilar no Windows conforme as instruções abaixo:
 
@@ -133,7 +142,9 @@ O JUCE 8.0.12 rejeita MinGW; a tentativa de compilação cruzada foi interrompid
 por essa restrição explícita. O destino Windows usa MSVC x64. A máquina atual
 é Linux, e o acesso ao SDK Microsoft também retornou bloqueio de rede:
 `download.visualstudio.microsoft.com` foi incluído no rascunho da configuração.
-Ainda não há binário Windows compilado ou validado nesta entrega.
+O build Windows foi concluído posteriormente no GitHub Actions, com Visual
+Studio 2022, testes automáticos e publicação da versão v0.1.0. O ZIP publicado
+foi baixado novamente e teve checksum e cabeçalhos PE AMD64 verificados.
 
 ## Estado da fidelidade e validação
 

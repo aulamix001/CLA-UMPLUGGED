@@ -23,16 +23,31 @@ O primeiro teste com sanitizadores identificou um índice circular no limite
 de arredondamento de ponto flutuante. O cálculo foi corrigido e a suíte completa
 passou novamente, incluindo os 151 presets nas três taxas.
 
-## Windows e fidelidade
+## Windows x64 — compilado, testado e publicado
+
+- [Execução Windows x64 #1](https://github.com/aulamix001/CLA-UMPLUGGED/actions/runs/43760055832):
+  concluída com sucesso, usando Visual Studio 2022 no runner Windows.
+- O script `build-windows.ps1` configurou e compilou os destinos, executou as
+  duas suítes de teste, verificou os binários PE AMD64 e gerou o ZIP e o SHA-256.
+- O job de publicação conferiu o checksum e criou a
+  [release v0.1.0](https://github.com/aulamix001/CLA-UMPLUGGED/releases/tag/v0.1.0).
+- Commit compilado: `7f1e0838167e3263fad991c8d98342a79354db6d`.
+- Depois da publicação, o ZIP foi baixado do endereço público do GitHub,
+  descompactado e verificado novamente: VST3 DLL e standalone são Windows AMD64.
+- A inspeção do VST3 confirmou os exports `GetPluginFactory`, `InitDll` e
+  `ExitDll`, além da dependência do runtime Microsoft Visual C++ v14 x64.
+- SHA-256 de `Unplugged-Study-Windows-x64.zip`:
+  `5556e0d3864d7be5ef2c03a0122de86b6523a8300342245c62bdda46c0363723`.
+
+## Diagnóstico local anterior e limites de fidelidade
 
 - A tentativa de build cruzado falhou porque o JUCE 8.0.12 recusa MinGW
   explicitamente. Não foi desativada essa verificação do framework.
 - O SDK Microsoft não pôde ser obtido: o redirecionamento oficial de
   `aka.ms` para `download.visualstudio.microsoft.com` recebeu HTTP 403
   da política de rede. O domínio foi acrescentado ao rascunho das configurações.
-- O preset CMake `windows-x64`, o script PowerShell e a workflow GitHub Actions
-  foram preparados para MSVC/Visual Studio 2022; **não foram executados no Windows**.
-- **Nenhum binário Windows é apresentado como compilado ou testado.**
+- Esses bloqueios da máquina Linux foram resolvidos para a entrega usando
+  o runner Windows do GitHub Actions, conforme o resultado acima.
 - Ainda não houve teste em DAW Windows, hardware de áudio real ou comparação
   auditiva com o plugin comercial. O DSP é uma implementação independente.
 - As páginas enviadas têm baixa resolução, e o PDF oficial continua inacessível.
