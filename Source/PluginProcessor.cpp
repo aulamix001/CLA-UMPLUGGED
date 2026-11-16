@@ -15,7 +15,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout UnpluggedProcessor::layout()
     };
     addFloat("input","Input sensitivity (dB)",-10,10,.1f,0);
     addFloat("output","Output (dB)",-10,10,.1f,0);
-    addFloat("balance","Balance (L/R)",-10,10,.1f,0);
+    addFloat("balance","Balance (dB)",-6,6,.1f,0);
     for(std::size_t i=0;i<stages.size();++i) {
         const juce::String id=stages[i];
         addFloat(id,id.toUpperCase(),-10,10,.1f,0);
@@ -24,8 +24,11 @@ juce::AudioProcessorValueTreeState::ParameterLayout UnpluggedProcessor::layout()
     }
     for(int i=1;i<=2;++i) {
         const auto id="predelay"+juce::String(i);
-        addFloat(id,"Reverb "+juce::String(i)+" predelay (ms)",0,160,1,16);
-        p.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID{id+"On",1},id+" on",true));
+        juce::StringArray notes;
+        for(const auto* note:unplugged::preDelayNames) notes.add(note);
+        p.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{id,1},
+            "Reverb "+juce::String(i)+" predelay (note)",notes,7));
+        p.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID{id+"On",1},id+" on",false));
     }
     p.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID{"direct",1},"Direct",true));
     p.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID{"bypass",1},"Bypass",false));
@@ -73,7 +76,7 @@ void UnpluggedProcessor::processBlock(juce::AudioBuffer<float>& buffer,juce::Mid
         s.amount[i]=stageParameters[i].amount->load();
         s.colour[i]=static_cast<int>(stageParameters[i].colour->load());
     }
-    for(int i=0;i<2;++i) { s.preDelayMs[i]=predelay[i]->load(); s.preDelayOn[i]=predelayOn[i]->load()>.5f; }
+    for(int i=0;i<2;++i) { s.preDelayNote[i]=static_cast<int>(predelay[i]->load()); s.preDelayOn[i]=predelayOn[i]->load()>.5f; }
     if(auto* playhead=getPlayHead()) if(auto pos=playhead->getPosition())
         if(auto bpm=pos->getBpm()) s.bpm=*bpm;
     engine.setSettings(s);
@@ -85,7 +88,7 @@ void UnpluggedProcessor::processBlock(juce::AudioBuffer<float>& buffer,juce::Mid
         };
         retainPeak(inputMeter[ch],engine.inputPeak[ch]);
         retainPeak(outputMeter[ch],engine.outputPeak[ch]);
-        if(engine.outputPeak[ch]>=1.0f) clipped.store(true,std::memory_order_relaxed);
+        if(engine.outputPeak[ch]>1.0f) clipped.store(true,std::memory_order_relaxed);
     }
 }
 void UnpluggedProcessor::processBlockBypassed(juce::AudioBuffer<float>& buffer,juce::MidiBuffer& midi)
@@ -98,7 +101,7 @@ juce::AudioProcessorParameter* UnpluggedProcessor::getBypassParameter() const { 
 juce::AudioProcessorEditor* UnpluggedProcessor::createEditor() { return new UnpluggedEditor(*this); }
 void UnpluggedProcessor::getStateInformation(juce::MemoryBlock& destination)
 {
-    auto snapshot=state.copyState(); snapshot.setProperty("version",1,nullptr);
+    auto snapshot=state.copyState(); snapshot.setProperty("version",2,nullptr);
     snapshot.setProperty("presetIndex",currentPreset.load(),nullptr);
     if(auto xml=snapshot.createXml()) copyXmlToBinary(*xml,destination);
 }
@@ -107,7 +110,17 @@ void UnpluggedProcessor::setStateInformation(const void* data,int bytes)
     if(data==nullptr || bytes<=0) return;
     if(auto xml=getXmlFromBinary(data,bytes))
         if(xml->hasTagName(state.state.getType())) {
-            state.replaceState(juce::ValueTree::fromXml(*xml));
+            auto restored=juce::ValueTree::fromXml(*xml);
+            if(xml->getIntAttribute("version",1)<2) {
+                // v1 stored milliseconds; convert to the closest musical division at 120 BPM.
+                for(auto child:restored) {
+                    const auto id=child.getProperty("id").toString();
+                    if(id=="predelay1" || id=="predelay2")
+                        child.setProperty("value",unplugged::nearestPreDelay(static_cast<float>(child.getProperty("value"))),nullptr);
+                    if(id=="balance") child.setProperty("value",juce::jlimit(-6.0f,6.0f,static_cast<float>(child.getProperty("value"))),nullptr);
+                }
+            }
+            state.replaceState(restored);
             currentPreset.store(juce::jlimit(0,getNumPrograms()-1,xml->getIntAttribute("presetIndex",0)));
         }
 }
@@ -119,16 +132,19 @@ void UnpluggedProcessor::setCurrentProgram(int index) { loadPreset(index); }
 void UnpluggedProcessor::loadPreset(int index)
 {
     if(!juce::isPositiveAndBelow(index,getNumPrograms())) return;
-    const auto& s=unplugged::factoryPresets()[static_cast<std::size_t>(index)].settings;
+    const auto& preset=unplugged::factoryPresets()[static_cast<std::size_t>(index)];
+    const auto& s=preset.settings;
     auto set=[&](const juce::String& id,float value) {
         if(auto* p=state.getParameter(id)) p->setValueNotifyingHost(p->convertTo0to1(value));
     };
-    set("input",s.inputDb); set("output",s.outputDb); set("balance",s.balance);
+    // The reference XML marks sensitivity and output as IgnoreOnPresetLoad.
+    if(preset.category!="XML Reference") { set("input",s.inputDb); set("output",s.outputDb); }
+    set("balance",s.balance);
     set("direct",s.direct?1.0f:0.0f); set("bypass",s.bypass?1.0f:0.0f);
     for(std::size_t i=0;i<stages.size();++i) { set(stages[i],s.amount[i]); set(juce::String(stages[i])+"Colour",static_cast<float>(s.colour[i])); }
     for(int i=0;i<2;++i) {
         const auto id="predelay"+juce::String(i+1);
-        set(id,s.preDelayMs[i]); set(id+"On",s.preDelayOn[i]?1.0f:0.0f);
+        set(id,static_cast<float>(s.preDelayNote[i])); set(id+"On",s.preDelayOn[i]?1.0f:0.0f);
     }
     currentPreset.store(index);
     updateHostDisplay(juce::AudioProcessor::ChangeDetails().withProgramChanged(true));

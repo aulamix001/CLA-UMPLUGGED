@@ -1,5 +1,6 @@
 #include "Presets.h"
 #include <algorithm>
+#include "ReferencePresets.h"
 
 namespace unplugged
 {
@@ -70,7 +71,7 @@ const std::vector<Preset>& factoryPresets()
         result.push_back({"Default","Init",Settings{}});
         for(const auto& r:recipes) {
             Settings s; s.amount=r.amount; s.colour=r.colour;
-            s.preDelayMs={r.pre1,r.pre2}; s.outputDb=r.output; s.direct=r.direct;
+            s.preDelayNote={nearestPreDelay(r.pre1),nearestPreDelay(r.pre2)}; s.preDelayOn={true,true}; s.outputDb=r.output; s.direct=r.direct;
             result.push_back({r.category,r.name,s});
             // Two explicit alternative spaces per source; no invented pitch/stereo stage.
             Settings dry=s;
@@ -82,13 +83,14 @@ const std::vector<Preset>& factoryPresets()
             ambience.amount[3]=std::max(-2.0f,s.amount[3]+3);
             ambience.amount[4]=std::max(-5.0f,s.amount[4]+2);
             ambience.colour[5]=2; ambience.amount[5]=std::max(-5.0f,s.amount[5]+3);
-            ambience.preDelayMs[0]=std::min(160.0f,s.preDelayMs[0]+20);
+            ambience.preDelayNote[0]=nearestPreDelay(preDelayMilliseconds(s.preDelayNote[0],120)+20);
             ambience.outputDb=std::max(-10.0f,s.outputDb-1);
             result.push_back({r.category,std::string(r.name)+" / Ambient",ambience});
         }
         // Append only: existing DAW program indices remain compatible with v0.1.0.
         Settings neutral;neutral.colour.fill(0);neutral.preDelayOn.fill(false);
         result.push_back({"Default","Default / all modules bypassed",neutral});
+        appendReferencePresets(result);
         return result;
     }();
     return bank;

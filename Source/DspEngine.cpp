@@ -47,7 +47,7 @@ void Engine::Reverb::prepare(double sampleRate)
 {
     sr=sampleRate;
     for(auto& line:lines) line.prepare(static_cast<std::size_t>(sr*0.16)+8);
-    pre.prepare(static_cast<std::size_t>(sr*0.17)+8); clear();
+    pre.prepare(static_cast<std::size_t>(sr*3.01)+8); clear();
 }
 void Engine::Reverb::clear() noexcept
 {
@@ -99,20 +99,23 @@ void Engine::setSettings(const Settings& next) noexcept
     settings=next;
     settings.inputDb=std::clamp(finite(next.inputDb),-10.0f,10.0f);
     settings.outputDb=std::clamp(finite(next.outputDb),-10.0f,10.0f);
-    settings.balance=std::clamp(finite(next.balance),-10.0f,10.0f);
+    settings.balance=std::clamp(finite(next.balance),-6.0f,6.0f);
     settings.bpm=std::clamp(std::isfinite(next.bpm)?next.bpm:120.0,20.0,400.0);
     for(int i=0;i<6;++i) {
         settings.colour[i]=std::clamp(next.colour[i],0,3);
         settings.amount[i]=std::clamp(finite(next.amount[i]),-10.0f,10.0f);
     }
-    for(int i=0;i<2;++i) settings.preDelayMs[i]=std::clamp(finite(next.preDelayMs[i],16),0.0f,160.0f);
+    for(int i=0;i<2;++i) {
+        settings.preDelayNote[i]=std::clamp(next.preDelayNote[i],0,13);
+        preDelayTimes[i]=settings.preDelayOn[i]?preDelayMilliseconds(settings.preDelayNote[i],settings.bpm):0;
+    }
     constexpr double lows[] { 80,80,180,350 }, highs[] { 2500,2500,6500,11000 };
     bass.shelf(sr,lows[settings.colour[0]],settings.colour[0]?settings.amount[0]:0,false);
     treble.shelf(sr,highs[settings.colour[1]],settings.colour[1]?settings.amount[1]:0,true);
     attack=static_cast<float>(std::exp(-1.0/(sr*(settings.colour[2]==1?.020:.004))));
     release=static_cast<float>(std::exp(-1.0/(sr*(settings.colour[2]==3?.20:.10))));
     inGain.target=gain(settings.inputDb); outGain.target=gain(settings.outputDb);
-    directGain.target=settings.direct?1.0f:0.0f; balance.target=settings.balance/10.0f;
+    directGain.target=settings.direct?1.0f:0.0f; balance.target=settings.balance;
     for(int i=0;i<3;++i) {
         const float level=(settings.amount[i+3]+10.0f)/20.0f;
         wet[i].target=settings.colour[i+3]?level*level*0.75f:0;
@@ -134,7 +137,7 @@ void Engine::process(float* left,float* right,int samples) noexcept
             outputPeak=inputPeak; left[i]=l; right[i]=r; continue;
         }
         const float pan=balance.next();
-        l*=input*std::min(1.0f,1.0f-pan); r*=input*std::min(1.0f,1.0f+pan);
+        l*=input*gain(-std::max(0.0f,pan)); r*=input*gain(std::min(0.0f,pan));
         inputPeak[0]=std::max(inputPeak[0],std::abs(l)); inputPeak[1]=std::max(inputPeak[1],std::abs(r));
         l=treble.tick(bass.tick(l,0),0); r=treble.tick(bass.tick(r,1),1);
         const float detector=std::max(std::abs(l),std::abs(r));
@@ -153,7 +156,7 @@ void Engine::process(float* left,float* right,int samples) noexcept
         std::array<float,2> fx {};
         for(int j=0;j<2;++j) {
             const auto reverb=reverbs[j].tick(settings.colour[j+3]?mono:0,
-                std::max(1,settings.colour[j+3]),j,settings.preDelayOn[j]?settings.preDelayMs[j]:0);
+                std::max(1,settings.colour[j+3]),j,preDelayTimes[j]);
             const float mix=wet[j].next();
             fx[0]+=mix*reverb[0]; fx[1]+=mix*reverb[1];
         }

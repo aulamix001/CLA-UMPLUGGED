@@ -17,6 +17,12 @@ int main(int argc,char** argv)
         check(p.getCurrentProgram()==2,"preset recall");
         check(p.state.getRawParameterValue("treble")->load()==expected,"parameter recall");
         std::cout<<"PASS state and factory program recall\n";
+        check(p.state.getParameter("balance")->getNormalisableRange().start==-6
+            && p.state.getParameter("balance")->getNormalisableRange().end==6,"balance range");
+        p.loadPreset(0);
+        check(p.state.getRawParameterValue("predelay1")->load()==7
+            && p.state.getRawParameterValue("predelay1On")->load()==0
+            && p.state.getRawParameterValue("predelay2On")->load()==0,"manual predelay defaults");
         for(int i=0;i<p.getNumPrograms();++i) {
             p.loadPreset(i); const auto& s=unplugged::factoryPresets()[static_cast<std::size_t>(i)].settings;
             for(std::size_t j=0;j<6;++j) {
@@ -26,15 +32,26 @@ int main(int argc,char** argv)
             const auto matches=[&](const juce::String& id,float value) {
                 return std::abs(p.state.getRawParameterValue(id)->load()-value)<.001f;
             };
-            check(matches("input",s.inputDb) && matches("output",s.outputDb)
-                && matches("balance",s.balance),"preset gain mapping");
+            if(i<152) check(matches("input",s.inputDb) && matches("output",s.outputDb),"preset gain mapping");
+            check(matches("balance",s.balance),"preset balance mapping");
             check(matches("direct",s.direct?1.0f:0.0f) && matches("bypass",s.bypass?1.0f:0.0f),"preset bypass mapping");
             for(int j=0;j<2;++j) {
                 const auto id="predelay"+juce::String(j+1);
-                check(matches(id,s.preDelayMs[j]) && matches(id+"On",s.preDelayOn[j]?1.0f:0.0f),"preset predelay mapping");
+                check(matches(id,static_cast<float>(s.preDelayNote[j])) && matches(id+"On",s.preDelayOn[j]?1.0f:0.0f),"preset predelay mapping");
             }
         }
-        std::cout<<"PASS automatic mapping of all factory presets\n";
+        p.state.getParameter("input")->setValueNotifyingHost(p.state.getParameter("input")->convertTo0to1(3.2f));
+        p.state.getParameter("output")->setValueNotifyingHost(p.state.getParameter("output")->convertTo0to1(-2.4f));
+        p.loadPreset(153);
+        check(std::abs(p.state.getRawParameterValue("input")->load()-3.2f)<.001f
+            && std::abs(p.state.getRawParameterValue("output")->load()+2.4f)<.001f,"reference preset reset protected gains");
+        auto legacy=p.state.copyState(); legacy.setProperty("version",1,nullptr);
+        for(auto child:legacy) if(child.getProperty("id").toString()=="predelay1") child.setProperty("value",125.0f,nullptr);
+        juce::MemoryBlock legacyData;
+        juce::AudioProcessor::copyXmlToBinary(*legacy.createXml(),legacyData);
+        p.setStateInformation(legacyData.getData(),static_cast<int>(legacyData.getSize()));
+        check(p.state.getRawParameterValue("predelay1")->load()==7,"legacy millisecond state migration");
+        std::cout<<"PASS automatic mapping, protected reference gains and legacy state migration\n";
         auto buses=p.getBusesLayout(); buses.inputBuses.set(0,juce::AudioChannelSet::mono());
         check(p.setBusesLayout(buses),"mono-stereo layout rejected");
         p.prepareToPlay(48000,128); p.loadPreset(0);
@@ -75,8 +92,8 @@ int main(int argc,char** argv)
         juce::StringArray categoryNames;
         juce::PopupMenu::MenuItemIterator roots(menu);
         while(roots.next())if(roots.getItem().subMenu)categoryNames.add(roots.getItem().text);
-        check(categoryNames==juce::StringArray{"Female Vocals","Male Vocals","Lead Vocals","Backing & Choir","Speech","Drums","Percussion","Guitars & Bass","Strings","Keys & Synths","Brass & Winds"},"menu category order differs from reference");
-        p.loadPreset(p.getNumPrograms()-1);
+        check(categoryNames==juce::StringArray{"Female Vocals","Male Vocals","Lead Vocals","Backing & Choir","Speech","Drums","Percussion","Guitars & Bass","Strings","Keys & Synths","Brass & Winds","XML Reference"},"menu category order differs from reference");
+        p.loadPreset(151);
         for(const auto* stage:UnpluggedProcessor::stages)check(p.state.getRawParameterValue(juce::String(stage)+"Colour")->load()==0,"default does not bypass every module");
         p.loadPreset(0);
         // Render the real menu item painter over the real editor for visual review.
@@ -112,7 +129,7 @@ int main(int argc,char** argv)
         auto* predelaySwitch=dynamic_cast<juce::TextButton*>(canvas->findChildWithID("predelay1On"));
         auto* colour=dynamic_cast<juce::TextButton*>(canvas->findChildWithID("bassColour"));
         check(predelayKnob&&predelaySwitch&&colour,"realistic controls missing");
-        predelayKnob->setValue(84,juce::sendNotificationSync);check(p.state.getRawParameterValue("predelay1")->load()==84,"knob mapping failed");
+        predelayKnob->setValue(10,juce::sendNotificationSync);check(p.state.getRawParameterValue("predelay1")->load()==10,"knob mapping failed");
         const auto lightPoint=editor->getLocalPoint(predelaySwitch,predelaySwitch->getLocalBounds().getCentre());
         predelaySwitch->setToggleState(false,juce::sendNotificationSync);check(p.state.getRawParameterValue("predelay1On")->load()==0,"off switch mapping failed");
         const auto offPixel=editor->createComponentSnapshot(editor->getLocalBounds()).getPixelAt(lightPoint.x,lightPoint.y);
@@ -122,7 +139,7 @@ int main(int argc,char** argv)
         auto* secondKnob=dynamic_cast<juce::Slider*>(canvas->findChildWithID("predelay2"));
         auto* secondSwitch=dynamic_cast<juce::TextButton*>(canvas->findChildWithID("predelay2On"));
         check(secondKnob&&secondSwitch,"second predelay control missing");
-        predelayKnob->setValue(100,juce::sendNotificationSync);secondKnob->setValue(80,juce::sendNotificationSync);
+        predelayKnob->setValue(13,juce::sendNotificationSync);secondKnob->setValue(8,juce::sendNotificationSync);
         secondSwitch->setToggleState(false,juce::sendNotificationSync);
         auto controlsPreview=editor->createComponentSnapshot(editor->getLocalArea(canvas,juce::Rectangle<int>{72,190,295,150}),true,1.5f);
         const auto controlsFile=juce::File::getCurrentWorkingDirectory().getChildFile("editor-predelays-preview.png");

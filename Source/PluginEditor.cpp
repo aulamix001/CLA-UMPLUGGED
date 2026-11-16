@@ -146,8 +146,9 @@ UnpluggedEditor::UnpluggedEditor(UnpluggedProcessor& p)
         s.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
         s.setTextBoxStyle(juce::Slider::NoTextBox,false,0,0);
         s.setBounds(118+i*140,202,94,94);s.setComponentID("predelay"+juce::String(i+1)); s.setName("Reverb "+juce::String(i+1)+" predelay");
-        s.setDoubleClickReturnValue(true,16); s.setTextValueSuffix(" ms"); s.setPopupDisplayEnabled(true,true,this);
-        s.setTooltip(s.getName()+" | 0-160 ms");
+        s.setDoubleClickReturnValue(true,7);
+        s.textFromValueFunction=[](double value) { return juce::String(unplugged::preDelayNames[static_cast<std::size_t>(juce::jlimit(0,13,static_cast<int>(std::round(value))))]); }; s.setPopupDisplayEnabled(true,true,this);
+        s.setTooltip(s.getName()+" | 64T to 4, synced to host BPM");
         attachments.push_back(std::make_unique<Attachment>(p.state,"predelay"+juce::String(i+1),s));
         auto& b=predelayButtons[i]; controls.addAndMakeVisible(b); b.setBounds(82+i*140,198,34,32);
         b.getProperties().set("artworkButton",true);
@@ -169,7 +170,7 @@ UnpluggedEditor::UnpluggedEditor(UnpluggedProcessor& p)
     controls.addAndMakeVisible(balance); balance.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
     balance.setComponentID("balance");
     balance.setTextBoxStyle(juce::Slider::NoTextBox,false,0,0); balance.setBounds(281,816,51,51);
-    balance.setDoubleClickReturnValue(true,0); balance.setTooltip("Stereo balance | double-click: centre");
+    balance.setDoubleClickReturnValue(true,0); balance.setTooltip("Stereo balance | -6 to +6 dB | double-click: centre");
     attachments.push_back(std::make_unique<Attachment>(p.state,"balance",balance));
     controls.addAndMakeVisible(direct); direct.setBounds(1460,882,84,32); direct.setButtonText("DIRECT"); direct.setClickingTogglesState(true);
     direct.getProperties().set("artworkButton",true);
@@ -201,14 +202,14 @@ juce::PopupMenu UnpluggedEditor::createPresetMenu() const
 {
     juce::PopupMenu menu;menu.setLookAndFeel(&const_cast<Skin&>(skin));
     const auto& bank=unplugged::factoryPresets();const int current=processor.getCurrentProgram();
-    const int neutral=static_cast<int>(bank.size())-1;
+    const int neutral=151; // Stable legacy program index.
     menu.addItem(neutral+1,"Default / all modules bypassed",true,current==neutral);
     menu.addSeparator();
     const juce::StringArray groups {"Female Vocals","Male Vocals","Lead Vocals","Backing & Choir","Speech",
-        "Drums","Percussion","Guitars & Bass","Strings","Keys & Synths","Brass & Winds"};
+        "Drums","Percussion","Guitars & Bass","Strings","Keys & Synths","Brass & Winds","XML Reference"};
     for(const auto& group:groups) {
         juce::PopupMenu sub;
-        for(std::size_t i=1;i+1<bank.size();++i) {
+        for(std::size_t i=1;i<bank.size();++i) {
             const auto& p=bank[i];juce::String category=p.category;
             if(category=="Backing & Choirs")category="Backing & Choir";
             if(category=="Strings & Guitars") {

@@ -32,7 +32,7 @@ conforme as instruções abaixo:
 4. Abra o seletor **A:** na barra superior e escolha uma categoria e um preset.
    Todos os controles são
    mapeados e carregados automaticamente. O tempo do delay vem da DAW;
-   sem andamento disponível, o fallback é 120 BPM.
+   sem andamento disponível, o fallback é 120 BPM, também usado pelos pré-delays.
 
 O standalone permite selecionar a interface de áudio nas opções do wrapper
 JUCE. Use fones para evitar realimentação entre microfone e caixas.
@@ -49,13 +49,13 @@ JUCE. Use fones para evitar realimentação entre microfone e caixas.
 | Reverb 1 colour | OFF, ROOM, HALL, CHAMBER |
 | Reverb 2 colour | OFF, TIGHT, LARGE, CANYON |
 | Delay colour | OFF, SLAP, EIGHT, QUARTER |
-| Pré-delay de cada reverb | 0–160 ms, passo de 1 ms; botão liga/desliga |
-| Balance | −10 (L) a +10 (R), passo de 0,1; somente entrada estéreo; duplo clique centraliza |
+| Pré-delay de cada reverb | 14 divisões de 64T a 4, sincronizadas ao BPM; padrão 16, botão desligado |
+| Balance | −6 a +6 dB, passo de 0,1; somente entrada estéreo; duplo clique centraliza |
 | Direct | Ligado: sinal direto + efeitos; desligado: retorno somente dos efeitos |
 | Bypass | Sinal original; preserva a conversão mono→estéreo |
 
 As setas alternam OFF→verde→azul→vermelho. Duplo clique nos faders retorna
-a zero; nos pré-delays retorna a 16 ms. O pico de saída é retido até clicar
+a zero; nos pré-delays retorna a 1/16 de nota. O pico de saída é retido até clicar
 no medidor de saída. A automação e o estado são geridos pelo JUCE APVTS:
 o projeto da DAW recupera todos os parâmetros e o índice de preset.
 
@@ -66,16 +66,17 @@ para esta implementação e não extraídos do produto original.
 
 ## Presets e mapeamento automático
 
-O banco possui **152 programas**: Init, 50 perfis com versões principal,
-Dry e Ambient e **Default / all modules bypassed**. Os 151 índices originais
-foram preservados para compatibilidade com sessões existentes.
+O banco possui **185 programas**: Init, 50 perfis com versões principal,
+Dry e Ambient, **Default / all modules bypassed** e os 33 programas XML. Os 152 índices existentes
+foram preservados; 33 presets dos XMLs enviados foram acrescentados na categoria XML Reference.
 Inclui vozes femininas, masculinas, lead, backing e coros,
 podcast, narração, locução, caixa, bumbo, toms, overheads, sala, bus paralelo,
 pandeiro, shaker, congas, cajón, violão aço/nylon, guitarra base/solo, baixo,
 violino, cello, cordas, piano, Rhodes, Wurlitzer, synth lead, arpejos, pads,
 Hammond, sax, trompete, trombone, gaita e acordeon.
 
-Selecionar um programa aplica os 21 parâmetros abaixo. Os mesmos parâmetros
+Selecionar um programa aplica os controles abaixo. Nos presets XML,
+Sensitivity e Output são preservados conforme IgnoreOnPresetLoad. Os mesmos parâmetros
 aparecem para automação da DAW, com IDs estáveis. O mapeamento não depende
 do nome da pista, de MIDI Learn ou de detecção do instrumento.
 
@@ -84,7 +85,7 @@ do nome da pista, de MIDI Learn ou de detecção do instrumento.
 | `input`, `output`, `balance` | Contínuos |
 | `bass`, `treble`, `compress`, `reverb1`, `reverb2`, `delay` | Macros contínuas |
 | `bassColour`, `trebleColour`, `compressColour`, `reverb1Colour`, `reverb2Colour`, `delayColour` | Enum 0–3 |
-| `predelay1`, `predelay2` | Milissegundos |
+| `predelay1`, `predelay2` | Escolha 0–13 de divisão musical (padrão 7 = 16) |
 | `predelay1On`, `predelay2On`, `direct`, `bypass` | Booleanos |
 
 São **21 parâmetros** no total (3 + 6 + 6 + 2 + 4).
@@ -157,12 +158,11 @@ foi baixado novamente e teve checksum e cabeçalhos PE AMD64 verificados.
 
 ## Estado da fidelidade e validação
 
-As páginas do manual enviadas na conversa orientaram os nomes e os controles.
-A leitura do PDF oficial completo continua bloqueada pela rede; os domínios
-`www.waves.com` e `assets.wavescdn.com` foram salvos no rascunho das configurações.
-As imagens de páginas têm resolução limitada. Uma auditoria de todos os valores
-iniciais e detalhes contra o PDF legível, comparação auditiva com o original e
-teste em uma DAW Windows ainda são necessários antes de declarar fidelidade total.
+Os XMLs e o PDF fornecidos foram usados para conferir os parâmetros expostos,
+padrões e os 33 presets da categoria XML Reference. Os índices de pré-delay
+são divisões musicais, não milissegundos. Consulte `Docs/XML-ALIGNMENT.md`
+para o mapeamento, compatibilidade e limites da reprodução sonora.
+Teste em DAW Windows, hardware e comparação auditiva com o original continuam pendentes.
 
 O código identifica-se como **Unplugged Study**, com IDs próprios; não substitui
 o binário ou o identificador VST3 do produto Waves. A licença do JUCE e os

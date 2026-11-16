@@ -67,15 +67,24 @@ int main()
             }
         });
         test("predelay shifts reverb onset",[]{
-            auto onset=[](float ms) {
+            auto onset=[](int note,double bpm,bool enabled) {
                 unplugged::Engine e; auto s=drySettings(); s.direct=false; s.colour[3]=1;
-                s.amount[3]=10; s.preDelayMs[0]=ms; e.setSettings(s); e.prepare(48000);
-                std::vector<float> l(12000,0),r=l; l[0]=r[0]=1;
+                s.amount[3]=10; s.preDelayNote[0]=note; s.preDelayOn[0]=enabled; s.bpm=bpm; e.setSettings(s); e.prepare(48000);
+                std::vector<float> l(160000,0),r=l; l[0]=r[0]=1;
                 e.process(l.data(),r.data(),static_cast<int>(l.size()));
                 for(std::size_t i=0;i<l.size();++i) if(std::abs(l[i])>1e-7f || std::abs(r[i])>1e-7f) return static_cast<int>(i);
                 return -1;
             };
-            const auto a=onset(0),b=onset(80); check(a>0 && std::abs((b-a)-3840)<=2,"wrong predelay onset");
+            // Independent timing anchors: sixteenth = 125 ms and quarter = 500 ms at 120 BPM.
+            check(std::abs(unplugged::preDelayMilliseconds(7,120)-125)<.001f,"sixteenth-note default timing");
+            check(std::abs(unplugged::preDelayMilliseconds(13,120)-500)<.001f,"quarter-note timing");
+            check(std::abs(unplugged::preDelayMilliseconds(0,120)-20.833333f)<.001f,"64th triplet timing");
+            const auto a=onset(7,120,false);
+            for(auto bpm:{20.0,60.0,120.0,240.0}) for(int note=0;note<14;++note) {
+                const auto b=onset(note,bpm,true);
+                const auto expected=std::lround(48000*unplugged::preDelayMilliseconds(note,bpm)/1000);
+                check(a>0 && std::abs((b-a)-expected)<=2,"wrong tempo-synced predelay onset");
+            }
         });
         test("bass and treble change frequency response",[]{
             for(int stage:{0,1}) {
@@ -91,10 +100,14 @@ int main()
             e.setSettings(s); e.prepare(48000); std::vector<float> l(48000,.8f),r=l;
             e.process(l.data(),r.data(),48000); check(std::abs(l.back())<.2f,"compressor ineffective");
         });
-        test("full balance attenuates opposite channel",[]{
-            unplugged::Engine e; auto s=drySettings(); s.balance=-10; e.setSettings(s); e.prepare(48000);
-            std::vector<float> l(128,.1f),r=l; e.process(l.data(),r.data(),128);
-            check(l.back()==.1f && r.back()==0,"balance incorrect");
+        test("balance applies calibrated 6 dB offset",[]{
+            for(float offset:{-6.0f,-3.0f,0.0f,3.0f,6.0f}) {
+                unplugged::Engine e; auto s=drySettings(); s.balance=offset; e.setSettings(s); e.prepare(48000);
+                std::vector<float> l(128,.1f),r=l; e.process(l.data(),r.data(),128);
+                const float attenuated=.1f*std::pow(10.0f,-std::abs(offset)/20);
+                check(std::abs(l.back()-(offset>0?attenuated:.1f))<1e-6f
+                    && std::abs(r.back()-(offset<0?attenuated:.1f))<1e-6f,"balance incorrect");
+            }
         });
         test("all factory presets finite and valid at multiple sample rates",[]{
             const auto& bank=unplugged::factoryPresets(); check(bank.size()>=100,"missing presets");

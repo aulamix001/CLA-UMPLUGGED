@@ -1,18 +1,36 @@
 #pragma once
 #include <array>
 #include <cstddef>
+#include <algorithm>
+#include <cmath>
 #include <vector>
 
 namespace unplugged
 {
+// XML indices/default and manual endpoints; intermediate divisions ordered by duration.
+inline constexpr std::array<const char*,14> preDelayNames {
+    "64T","64","32T","64D","32","16T","32D","16","8T","16D","8","4T","8D","4" };
+inline constexpr std::array<double,14> preDelayBeats {
+    1.0/24,1.0/16,1.0/12,3.0/32,1.0/8,1.0/6,3.0/16,1.0/4,1.0/3,3.0/8,1.0/2,2.0/3,3.0/4,1.0 };
+inline float preDelayMilliseconds(int index,double bpm) noexcept {
+    const double tempo=std::clamp(std::isfinite(bpm)?bpm:120.0,20.0,400.0);
+    return static_cast<float>(60000.0/tempo*preDelayBeats[static_cast<std::size_t>(std::clamp(index,0,13))]);
+}
+inline int nearestPreDelay(float ms,double bpm=120) noexcept {
+    if(!std::isfinite(ms)) return 7;
+    int result=0;
+    for(int i=1;i<14;++i)
+        if(std::abs(preDelayMilliseconds(i,bpm)-ms)<std::abs(preDelayMilliseconds(result,bpm)-ms)) result=i;
+    return result;
+}
 struct Settings
 {
     float inputDb = 0, outputDb = 0;
     std::array<float, 6> amount { 0, 0, 0, 0, 0, 0 };
     // 0 = bypass, 1 = green, 2 = blue, 3 = red.
     std::array<int, 6> colour { 1, 1, 1, 1, 1, 1 };
-    std::array<float, 2> preDelayMs { 16, 16 };
-    std::array<bool, 2> preDelayOn { true, true };
+    std::array<int, 2> preDelayNote { 7, 7 };
+    std::array<bool, 2> preDelayOn { false, false };
     float balance = 0;
     bool direct = true, bypass = false;
     double bpm = 120;
@@ -64,6 +82,7 @@ private:
     double sr = 48000;
     Biquad bass, treble;
     std::array<Reverb, 2> reverbs;
+    std::array<float, 2> preDelayTimes {};
     std::array<Delay, 2> echo;
     Smooth inGain, outGain, directGain, balance;
     std::array<Smooth, 3> wet;

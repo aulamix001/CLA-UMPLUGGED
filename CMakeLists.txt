@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(UnpluggedStudy VERSION 0.1.2 LANGUAGES C CXX)
+project(UnpluggedStudy VERSION 0.1.3 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 option(UNPLUGGED_BUILD_PLUGIN "Build JUCE VST3 and standalone" ON)
@@ -24,6 +24,11 @@ if(BUILD_TESTING)
     add_executable(dsp_tests Tests/DspTests.cpp)
     target_link_libraries(dsp_tests PRIVATE unplugged_dsp)
     add_test(NAME dsp_tests COMMAND dsp_tests)
+    find_package(Python3 COMPONENTS Interpreter QUIET)
+    if(Python3_Interpreter_FOUND)
+        add_test(NAME reference_presets COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/Tests/ReferencePresetsTest.py" "$<TARGET_FILE:preset_export>")
+    endif()
 endif()
 
 if(UNPLUGGED_BUILD_PLUGIN)
